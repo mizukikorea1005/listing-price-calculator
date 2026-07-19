@@ -173,6 +173,18 @@ button {
   min-width: 180px;
 }
 
+.margin-input {
+  display: grid;
+  grid-template-columns: 92px minmax(94px, 1fr);
+  gap: 5px;
+  min-width: 200px;
+}
+
+.margin-input select,
+.margin-input input {
+  min-width: 0;
+}
+
 .result-layout {
   display: grid;
   grid-template-columns: 0.82fr 1.18fr;

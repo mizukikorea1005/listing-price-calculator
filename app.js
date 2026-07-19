@@ -55,6 +55,8 @@ const defaults = {
   domesticShipping: 3000,
   packingCost: 1200,
   targetProfitKrw: 8000,
+  targetProfitMode: "krw",
+  targetProfitPercent: 25,
   exchangeRate: 1335,
   weightGram: 800,
   lengthCm: 24,
@@ -86,6 +88,8 @@ const PRODUCT_FIELDS = [
   "domesticShipping",
   "packingCost",
   "targetProfitKrw",
+  "targetProfitMode",
+  "targetProfitPercent",
   "weightGram",
   "lengthCm",
   "widthCm",
@@ -100,6 +104,8 @@ function createProduct(overrides = {}) {
     domesticShipping: numberValue(overrides.domesticShipping ?? defaults.domesticShipping),
     packingCost: numberValue(overrides.packingCost ?? defaults.packingCost),
     targetProfitKrw: numberValue(overrides.targetProfitKrw ?? defaults.targetProfitKrw),
+    targetProfitMode: normalizeTargetProfitMode(overrides.targetProfitMode ?? defaults.targetProfitMode),
+    targetProfitPercent: numberValue(overrides.targetProfitPercent ?? defaults.targetProfitPercent),
     weightGram: numberValue(overrides.weightGram ?? defaults.weightGram),
     lengthCm: numberValue(overrides.lengthCm ?? defaults.lengthCm),
     widthCm: numberValue(overrides.widthCm ?? defaults.widthCm),
@@ -258,7 +264,15 @@ function renderProductRows() {
       <td><input data-field="productCost" type="number" min="0" step="100" value="${product.productCost}"></td>
       <td><input data-field="domesticShipping" type="number" min="0" step="100" value="${product.domesticShipping}"></td>
       <td><input data-field="packingCost" type="number" min="0" step="100" value="${product.packingCost}"></td>
-      <td><input data-field="targetProfitKrw" type="number" min="0" step="100" value="${product.targetProfitKrw}"></td>
+      <td>
+        <div class="margin-input">
+          <select data-field="targetProfitMode">
+            <option value="krw" ${product.targetProfitMode === "krw" ? "selected" : ""}>원화</option>
+            <option value="percent" ${product.targetProfitMode === "percent" ? "selected" : ""}>원가 대비 %</option>
+          </select>
+          <input data-field="${product.targetProfitMode === "percent" ? "targetProfitPercent" : "targetProfitKrw"}" type="number" min="0" step="${product.targetProfitMode === "percent" ? "0.1" : "100"}" value="${product.targetProfitMode === "percent" ? product.targetProfitPercent : product.targetProfitKrw}">
+        </div>
+      </td>
       <td><input data-field="weightGram" type="number" min="1" step="10" value="${product.weightGram}"></td>
       <td><input data-field="lengthCm" type="number" min="0" step="0.1" value="${product.lengthCm}"></td>
       <td><input data-field="widthCm" type="number" min="0" step="0.1" value="${product.widthCm}"></td>
@@ -267,9 +281,11 @@ function renderProductRows() {
     </tr>
   `).join("");
 
-  els.productRows.querySelectorAll("input").forEach((input) => {
-    input.addEventListener("input", () => {
+  els.productRows.querySelectorAll("input, select").forEach((input) => {
+    const eventName = input.tagName === "SELECT" ? "change" : "input";
+    input.addEventListener(eventName, () => {
       syncProductsFromDom();
+      if (input.dataset.field === "targetProfitMode") renderProductRows();
       recalculate();
       saveState();
     });
@@ -300,10 +316,16 @@ function syncProductsFromDom() {
   }
   state.products = rows.map((row, index) => {
     const product = createProduct(state.products[index] || {});
-    row.querySelectorAll("input[data-field]").forEach((input) => {
+    row.querySelectorAll("input[data-field], select[data-field]").forEach((input) => {
       const field = input.dataset.field;
       if (!PRODUCT_FIELDS.includes(field)) return;
-      product[field] = field === "productName" ? input.value.trim() : numberValue(input.value);
+      if (field === "productName") {
+        product[field] = input.value.trim();
+      } else if (field === "targetProfitMode") {
+        product[field] = normalizeTargetProfitMode(input.value);
+      } else {
+        product[field] = numberValue(input.value);
+      }
     });
     return product;
   });
@@ -346,9 +368,20 @@ function baseCost(input) {
   return numberValue(input.productCost) + numberValue(input.domesticShipping) + numberValue(input.packingCost);
 }
 
+function targetProfitAmountKrw(input) {
+  if (normalizeTargetProfitMode(input.targetProfitMode) === "percent") {
+    return numberValue(input.productCost) * numberValue(input.targetProfitPercent) / 100;
+  }
+  return numberValue(input.targetProfitKrw);
+}
+
+function normalizeTargetProfitMode(value) {
+  return value === "percent" ? "percent" : "krw";
+}
+
 function calculateEbay(input) {
   const cost = baseCost(input);
-  const targetProfit = numberValue(input.targetProfitKrw);
+  const targetProfit = targetProfitAmountKrw(input);
   const fixedFeeKrw = numberValue(input.ebayFixedFee) * numberValue(input.exchangeRate);
   const feeRate = (numberValue(input.ebayFinalValueFee) + numberValue(input.ebayInternationalFee) + numberValue(input.ebayAdFee) + numberValue(input.ebayBufferFee)) / 100;
   const required = (cost + targetProfit + fixedFeeKrw) / Math.max(0.01, 1 - feeRate);
@@ -375,7 +408,7 @@ function calculateShopee(code, input) {
   const buyerShippingLocal = lookupShopeeBuyerShipping(code, billableWeight);
   const buyerShippingKrw = buyerShippingLocal * numberValue(market.exchangeRate);
   const cost = baseCost(input) + sellerShippingKrw;
-  const targetProfit = numberValue(input.targetProfitKrw);
+  const targetProfit = targetProfitAmountKrw(input);
   const commissionServiceRate = (numberValue(market.commissionFee) + numberValue(input.shopeeProgramFee)) / 100;
   const bufferRate = numberValue(input.shopeeBufferFee) / 100;
   const withdrawalRate = numberValue(input.shopeeWithdrawalFee) / 100;
@@ -723,6 +756,9 @@ function saveCurrentRecord() {
       widthCm: product.widthCm,
       heightCm: product.heightCm,
       targetProfitKrw: product.targetProfitKrw,
+      targetProfitMode: product.targetProfitMode,
+      targetProfitPercent: product.targetProfitPercent,
+      targetProfitAmountKrw: targetProfitAmountKrw(product),
       ebayPrice: ebay.listingPrice,
       ebayUsd: ebay.foreignPrice,
       ebayProfit: ebay.profit,
@@ -763,7 +799,7 @@ function renderHistory() {
       <td>${formatDateTime(record.savedAt)}</td>
       <td>${escapeHtml(record.productName)}</td>
       <td>${formatKrw(record.productCost)}</td>
-      <td>${formatKrw(record.targetProfitKrw)}</td>
+      <td>${formatTargetProfit(record)}</td>
       <td><strong>${formatSavedEbay(record)}</strong><br><span>${formatKrw(record.ebayProfit || 0)}</span></td>
       ${SHOPEE_MARKET_CODES.map((code) => renderSavedShopeeCell(record, code)).join("")}
       <td><button type="button" data-load="${record.id}">불러오기</button></td>
@@ -777,6 +813,14 @@ function renderHistory() {
 function formatSavedEbay(record) {
   if (record.ebayUsd) return formatForeign(record.ebayUsd, "USD");
   return formatKrw(record.ebayPrice);
+}
+
+function formatTargetProfit(record) {
+  if (normalizeTargetProfitMode(record.targetProfitMode) === "percent") {
+    const percent = formatNumber(record.targetProfitPercent, 1);
+    return `${percent}% (${formatKrw(targetProfitAmountKrw(record))})`;
+  }
+  return formatKrw(record.targetProfitKrw);
 }
 
 function renderSavedShopeeCell(record, code) {
@@ -803,7 +847,9 @@ function loadRecord(id) {
     lengthCm: record.lengthCm ?? state.lengthCm,
     widthCm: record.widthCm ?? state.widthCm,
     heightCm: record.heightCm ?? state.heightCm,
-    targetProfitKrw: record.targetProfitKrw
+    targetProfitKrw: record.targetProfitKrw,
+    targetProfitMode: record.targetProfitMode ?? "krw",
+    targetProfitPercent: record.targetProfitPercent ?? state.targetProfitPercent
   })];
   syncPrimaryProductFields();
   state.customsPayer = record.customsPayer ?? state.customsPayer;
@@ -823,6 +869,7 @@ async function copySummary() {
     const shopeeRows = SHOPEE_MARKET_CODES.map((code) => calculateShopee(code, input));
     return [
       `[${product.productName || "상품"} 원화 마진 계산]`,
+      `목표 마진: ${formatTargetProfit(product)}`,
       `이베이 권장가: ${formatForeign(ebay.foreignPrice, "USD")} / 예상 마진: ${formatKrw(ebay.profit)}`,
       ...shopeeRows.map((row) => `${row.market.label}: ${formatForeign(row.listingLocal, row.market.currency)} / 마진 ${formatKrw(row.profit)}`),
       ""
