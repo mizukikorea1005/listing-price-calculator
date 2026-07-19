@@ -3,7 +3,7 @@ const RATE_PROFILE_ID = "hana-first-20260612-92-usd1335";
 const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-article-10624-20260525-v2";
 
 const SHOPEE_MARKETS = {
-  SG: { label: "싱가폴", currency: "SGD", exchangeRate: 1094.322, commissionFee: 15.35, transactionFee: 2.16 },
+  SG: { label: "싱가포르", currency: "SGD", exchangeRate: 1094.322, commissionFee: 15.35, transactionFee: 2.16 },
   TW: { label: "대만", currency: "TWD", exchangeRate: 44.436, commissionFee: 12.35, transactionFee: 2 },
   BR: { label: "브라질", currency: "BRL", exchangeRate: 275.439, commissionFee: 13.35, transactionFee: 2 },
   TH: { label: "태국", currency: "THB", exchangeRate: 42.909, commissionFee: 21.77, transactionFee: 2.14 },
@@ -14,8 +14,8 @@ const SHOPEE_MARKETS = {
 const SHOPEE_MARKET_CODES = Object.keys(SHOPEE_MARKETS);
 
 const SHOPEE_BUYER_SHIPPING_RULES = {
-  SG: { type: "fixed", amount: 1.83, note: "SG 2026.06.01 요율표의 고객/쇼피 부담 감면액 기준 보수 반영" },
-  TW: { type: "fixed", amount: 70, note: "택배 배송 기준 고객 고정 배송비" },
+  SG: { type: "fixed", amount: 1.83, note: "SG 2026.06.01 요율표의 고객 부담 배송비 기준 반영" },
+  TW: { type: "fixed", amount: 70, note: "생방 배송 기준 고객 고정 배송비" },
   BR: { type: "fixed", amount: 13, note: "공유 요율표 기준 고객 부담 배송비" },
   TH: { type: "fixed", amount: 22, note: "Zone A 기준 고객 고정 배송비" },
   MY: {
@@ -40,13 +40,13 @@ const CUSTOMS_TOY_CARD = {
 };
 
 const CUSTOMS_POLICY_NOTES = {
-  SG: "마켓 세관 기준",
-  TW: "마켓 세관 기준",
+  SG: "마켓/구매자 처리",
+  TW: "마켓/구매자 처리",
   BR: "구매자 부담",
   TH: "쇼피 자동 마크업",
-  MY: "마켓 세관 기준",
-  PH: "마켓 세관 기준",
-  VN: "마켓 세관 기준"
+  MY: "마켓/구매자 처리",
+  PH: "마켓/구매자 처리",
+  VN: "마켓/구매자 처리"
 };
 
 const defaults = {
@@ -77,6 +77,8 @@ const defaults = {
 };
 
 let cachedShopeeShippingTables = null;
+
+
 const els = {};
 const PRODUCT_FIELDS = [
   "productName",
@@ -319,7 +321,7 @@ function updateCustomsExtraField() {
   const sellerPays = els.customsPayer.value === "seller";
   els.customsExtraFixed.disabled = !sellerPays;
   els.customsExtraFixed.title = sellerPays
-    ? "통관 완료 후 반품/배송 실패처럼 판매자가 수입 관부가세를 부담하는 예외 상황에만 반영됩니다."
+    ? "통관 완료 후 반품/배송 실패처럼 판매자가 수입 관부가세를 부담하는 예외 상황에만 반영합니다."
     : "쇼피 자동 마크업/구매자 부담 모드에서는 반영하지 않습니다.";
 }
 
@@ -374,9 +376,11 @@ function calculateShopee(code, input) {
   const buyerShippingKrw = buyerShippingLocal * numberValue(market.exchangeRate);
   const cost = baseCost(input) + sellerShippingKrw;
   const targetProfit = numberValue(input.targetProfitKrw);
-  const commissionServiceRate = (numberValue(market.commissionFee) + numberValue(input.shopeeProgramFee) + numberValue(input.shopeeWithdrawalFee) + numberValue(input.shopeeBufferFee)) / 100;
+  const commissionServiceRate = (numberValue(market.commissionFee) + numberValue(input.shopeeProgramFee)) / 100;
+  const bufferRate = numberValue(input.shopeeBufferFee) / 100;
+  const withdrawalRate = numberValue(input.shopeeWithdrawalFee) / 100;
   const transactionRate = numberValue(market.transactionFee) / 100;
-  const feeRate = commissionServiceRate + transactionRate;
+  const feeRate = commissionServiceRate + bufferRate + transactionRate + withdrawalRate;
   const sellerPaysCustoms = input.customsPayer === "seller";
   const extraCustomsKrw = sellerPaysCustoms ? numberValue(input.customsExtraFixed) : 0;
   let listingLocal = 0;
@@ -384,25 +388,25 @@ function calculateShopee(code, input) {
   let customsBlocked = false;
 
   if (sellerPaysCustoms) {
-    listingLocal = roundLocal((cost + targetProfit + extraCustomsKrw + transactionRate * buyerShippingKrw) / Math.max(0.01, 1 - feeRate) / numberValue(market.exchangeRate), market.currency);
+    listingLocal = roundLocal(shopeeRequiredKrw(cost, targetProfit, extraCustomsKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate) / numberValue(market.exchangeRate), market.currency);
     let low = listingLocal;
     let high = listingLocal;
     for (let index = 0; index < 24; index += 1) {
-      if (shopeeProfitAt(code, high, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, transactionRate, input) >= targetProfit) break;
+      if (shopeeProfitAt(code, high, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate, input) >= targetProfit) break;
       high = roundLocal(high * 1.35 + 1, market.currency);
       if (high > Math.max(listingLocal * 80, 1000000)) {
         customsBlocked = true;
         break;
       }
     }
-    if (shopeeProfitAt(code, high, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, transactionRate, input) < targetProfit) {
+    if (shopeeProfitAt(code, high, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate, input) < targetProfit) {
       customsBlocked = true;
     }
     if (!customsBlocked) {
       for (let index = 0; index < 32; index += 1) {
         const middle = roundLocal((low + high) / 2, market.currency);
         if (middle === low || middle === high) break;
-        if (shopeeProfitAt(code, middle, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, transactionRate, input) >= targetProfit) {
+        if (shopeeProfitAt(code, middle, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate, input) >= targetProfit) {
           high = middle;
         } else {
           low = middle;
@@ -412,12 +416,13 @@ function calculateShopee(code, input) {
     }
     customsKrw = estimateCustomsKrw(code, listingLocal, sellerShippingLocal, input);
   } else {
-    const requiredKrw = (cost + targetProfit + extraCustomsKrw + transactionRate * buyerShippingKrw) / Math.max(0.01, 1 - feeRate);
+    const requiredKrw = shopeeRequiredKrw(cost, targetProfit, extraCustomsKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate);
     listingLocal = roundLocal(requiredKrw / numberValue(market.exchangeRate), market.currency);
   }
 
   const listingKrw = listingLocal * numberValue(market.exchangeRate);
-  const feeKrw = shopeeFeeKrw(listingKrw, buyerShippingKrw, commissionServiceRate, transactionRate);
+  const feeBreakdown = shopeeFeeBreakdownKrw(listingKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate);
+  const feeKrw = feeBreakdown.total;
   const profit = listingKrw - feeKrw - customsKrw - extraCustomsKrw - cost;
   return {
     code,
@@ -434,23 +439,46 @@ function calculateShopee(code, input) {
     listingLocal,
     listingKrw,
     feeKrw,
+    feeBreakdown,
     profit,
-    feeRate,
+    feeRate: listingKrw ? feeKrw / listingKrw : feeRate,
     customsBlocked,
     status: shippingIssue || (customsBlocked ? "판매자 부담 위험" : profit >= targetProfit ? "OK" : "확인")
   };
 }
 
-function shopeeProfitAt(code, listingLocal, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, transactionRate, input) {
+function shopeeProfitAt(code, listingLocal, sellerShippingLocal, buyerShippingKrw, cost, extraCustomsKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate, input) {
   const market = getShopeeMarket(input, code);
   const listingKrw = numberValue(listingLocal) * numberValue(market.exchangeRate);
-  const feeKrw = shopeeFeeKrw(listingKrw, buyerShippingKrw, commissionServiceRate, transactionRate);
+  const feeKrw = shopeeFeeKrw(listingKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate);
   const customsKrw = estimateCustomsKrw(code, listingLocal, sellerShippingLocal, input);
   return listingKrw - feeKrw - customsKrw - extraCustomsKrw - cost;
 }
 
-function shopeeFeeKrw(listingKrw, buyerShippingKrw, commissionServiceRate, transactionRate) {
-  return listingKrw * commissionServiceRate + (listingKrw + buyerShippingKrw) * transactionRate;
+function shopeeRequiredKrw(cost, targetProfit, extraCustomsKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate) {
+  const payoutRateBeforeWithdrawal = 1 - commissionServiceRate - transactionRate;
+  const denominator = payoutRateBeforeWithdrawal * (1 - withdrawalRate) - bufferRate;
+  const buyerShippingFeeImpact = transactionRate * buyerShippingKrw * (1 - withdrawalRate);
+  return (cost + targetProfit + extraCustomsKrw + buyerShippingFeeImpact) / Math.max(0.01, denominator);
+}
+
+function shopeeFeeKrw(listingKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate) {
+  return shopeeFeeBreakdownKrw(listingKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate).total;
+}
+
+function shopeeFeeBreakdownKrw(listingKrw, buyerShippingKrw, commissionServiceRate, bufferRate, transactionRate, withdrawalRate) {
+  const commissionServiceFee = listingKrw * commissionServiceRate;
+  const transactionFee = (listingKrw + buyerShippingKrw) * transactionRate;
+  const bufferFee = listingKrw * bufferRate;
+  const settlementBeforeWithdrawal = Math.max(0, listingKrw - commissionServiceFee - transactionFee);
+  const withdrawalFee = settlementBeforeWithdrawal * withdrawalRate;
+  return {
+    commissionServiceFee,
+    transactionFee,
+    bufferFee,
+    withdrawalFee,
+    total: commissionServiceFee + transactionFee + bufferFee + withdrawalFee
+  };
 }
 
 function estimateCustomsKrw(code, listingLocal, shippingLocal, input) {
@@ -513,7 +541,7 @@ function shopeeShippingIssue(code, gram) {
     : [];
   if (!table.length) return "배송표 없음";
   const maxWeight = numberValue(table[table.length - 1][0]);
-  if (gram > maxWeight) return `무게표 초과(${formatNumber(maxWeight)}g+)`;
+  if (gram > maxWeight) return `요율표 초과(${formatNumber(maxWeight)}g+)`;
   return "";
 }
 
@@ -622,11 +650,22 @@ function renderShopee(rows) {
         <span>${row.buyerShippingNote}</span>
       </td>
       <td>${formatKrw(row.customsKrw)}<br><span>${row.customsNote}</span></td>
+      <td>${renderShopeeFeeCell(row)}</td>
       <td>${renderShopeePriceCell(row)}</td>
       <td>${formatKrw(row.profit)}</td>
       <td>${row.status}</td>
     </tr>
   `).join("");
+}
+
+function renderShopeeFeeCell(row) {
+  const fee = row.feeBreakdown || {};
+  return `
+    <strong>${formatKrw(row.feeKrw)}</strong><br>
+    <span>판매/FSP ${formatKrw(fee.commissionServiceFee)}</span><br>
+    <span>거래 ${formatKrw(fee.transactionFee)} · 인출 ${formatKrw(fee.withdrawalFee)}</span><br>
+    <span>여유분 ${formatKrw(fee.bufferFee)}</span>
+  `;
 }
 
 function renderShopeePriceCell(row) {
@@ -885,7 +924,7 @@ function roundLocal(value, currency) {
   if (!Number.isFinite(value) || value <= 0) return 0;
   if (currency === "VND") return Math.ceil(value / 1000) * 1000;
   if (currency === "TWD" || currency === "PHP" || currency === "THB") return Math.ceil(value);
-  return Math.ceil(value * 10) / 10;
+  return Math.ceil(value * 100) / 100;
 }
 
 function numberValue(value) {
