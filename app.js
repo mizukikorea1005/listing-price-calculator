@@ -63,9 +63,6 @@ const defaults = {
   targetProfitPercent: 25,
   exchangeRate: 1335,
   weightGram: 800,
-  lengthCm: 24,
-  widthCm: 18,
-  heightCm: 8,
   ebayFinalValueFee: 13.25,
   ebayInternationalFee: 1.45,
   ebayFixedFee: 0.4,
@@ -94,10 +91,7 @@ const PRODUCT_FIELDS = [
   "targetProfitKrw",
   "targetProfitMode",
   "targetProfitPercent",
-  "weightGram",
-  "lengthCm",
-  "widthCm",
-  "heightCm"
+  "weightGram"
 ];
 
 function createProduct(overrides = {}) {
@@ -110,10 +104,7 @@ function createProduct(overrides = {}) {
     targetProfitKrw: numberValue(overrides.targetProfitKrw ?? defaults.targetProfitKrw),
     targetProfitMode: normalizeTargetProfitMode(overrides.targetProfitMode ?? defaults.targetProfitMode),
     targetProfitPercent: numberValue(overrides.targetProfitPercent ?? defaults.targetProfitPercent),
-    weightGram: numberValue(overrides.weightGram ?? defaults.weightGram),
-    lengthCm: numberValue(overrides.lengthCm ?? defaults.lengthCm),
-    widthCm: numberValue(overrides.widthCm ?? defaults.widthCm),
-    heightCm: numberValue(overrides.heightCm ?? defaults.heightCm)
+    weightGram: numberValue(overrides.weightGram ?? defaults.weightGram)
   };
 }
 
@@ -278,9 +269,6 @@ function renderProductRows() {
         </div>
       </td>
       <td><input data-field="weightGram" type="number" min="1" step="10" value="${product.weightGram}"></td>
-      <td><input data-field="lengthCm" type="number" min="0" step="0.1" value="${product.lengthCm}"></td>
-      <td><input data-field="widthCm" type="number" min="0" step="0.1" value="${product.widthCm}"></td>
-      <td><input data-field="heightCm" type="number" min="0" step="0.1" value="${product.heightCm}"></td>
       <td><button class="danger-button" type="button" data-remove-product="${index}" ${state.products.length <= 1 ? "disabled" : ""}>삭제</button></td>
     </tr>
   `).join("");
@@ -557,8 +545,7 @@ function customsNote(code, input) {
 }
 
 function billableGram(input) {
-  const volumeKg = numberValue(input.lengthCm) * numberValue(input.widthCm) * numberValue(input.heightCm) / 6000;
-  return Math.max(numberValue(input.weightGram), volumeKg * 1000, 1);
+  return Math.max(numberValue(input.weightGram), 1);
 }
 
 function lookupShopeeShipping(code, gram) {
@@ -756,9 +743,6 @@ function saveCurrentRecord() {
       customsPayer: state.customsPayer,
       customsExtraFixed: state.customsExtraFixed,
       weightGram: product.weightGram,
-      lengthCm: product.lengthCm,
-      widthCm: product.widthCm,
-      heightCm: product.heightCm,
       targetProfitKrw: product.targetProfitKrw,
       targetProfitMode: product.targetProfitMode,
       targetProfitPercent: product.targetProfitPercent,
@@ -865,9 +849,6 @@ function loadRecord(id) {
     domesticShipping: record.domesticShipping ?? state.domesticShipping,
     packingCost: record.packingCost ?? state.packingCost,
     weightGram: record.weightGram ?? state.weightGram,
-    lengthCm: record.lengthCm ?? state.lengthCm,
-    widthCm: record.widthCm ?? state.widthCm,
-    heightCm: record.heightCm ?? state.heightCm,
     targetProfitKrw: record.targetProfitKrw,
     targetProfitMode: record.targetProfitMode ?? "krw",
     targetProfitPercent: record.targetProfitPercent ?? state.targetProfitPercent
