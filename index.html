@@ -161,13 +161,13 @@
 
         <details class="panel settings-panel shopee-settings-panel" open>
           <summary>쇼피 설정 (국가별)</summary>
-          <p class="settings-note">현재 배송 방식은 SLS 기준입니다. 판매 수수료는 쇼피 교육 허브 10624번 글의 SLS/VAT 포함 요율을 사용합니다. 값이 이상하면 아래 버튼으로 공식값을 다시 적용하세요.</p>
+          <p class="settings-note">현재 배송 방식은 SLS 기준입니다. 판매 수수료는 쇼피 교육 허브 10624번 글, FSP 수수료는 10252번 글의 국가별 표를 기준으로 사용합니다. 값이 이상하면 아래 버튼으로 공식값을 다시 적용하세요.</p>
           <div class="action-row settings-actions">
-            <button class="ghost-button" type="button" id="resetShopeeFeesButton">SLS 공식 수수료 적용</button>
+            <button class="ghost-button" type="button" id="resetShopeeFeesButton">SLS/FSP 공식 수수료 적용</button>
           </div>
           <div class="settings-grid shopee-common-grid">
             <label>
-              기본 서비스/FSP 수수료(%)
+              기본 FSP 수수료(%)
               <input id="shopeeProgramFee" type="number" min="0" step="0.1">
             </label>
             <label>
@@ -198,7 +198,7 @@
                   <th>통화</th>
                   <th>환율</th>
                   <th>SLS 판매 수수료(VAT 포함)</th>
-                  <th>서비스/FSP 수수료</th>
+                  <th>FSP 수수료(10252 기준)</th>
                   <th>거래 수수료(VAT 포함)</th>
                 </tr>
               </thead>
@@ -210,6 +210,6 @@
     </main>
 
     <script src="./shopee-shipping-data.js?v=20260720-shopee-after-table"></script>
-    <script src="./app.js?v=20260720-hana-first-rate"></script>
+    <script src="./app.js?v=20260720-shopee-fsp-10252"></script>
   </body>
 </html>

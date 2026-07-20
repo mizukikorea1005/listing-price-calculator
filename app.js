@@ -1,16 +1,16 @@
 const STORAGE_KEY = "global-seller-margin-desk-v2";
 const RATE_PROFILE_ID = "hana-first-20260720-92-usd1335";
-const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-article-10624-20260720-market-service";
+const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-articles-10624-10252-20260720-fsp";
 
 const SHOPEE_MARKETS = {
-  SG: { label: "싱가포르", currency: "SGD", exchangeRate: 1056.85, commissionFee: 15.35, transactionFee: 2.16, serviceFee: 4 },
-  TW: { label: "대만", currency: "TWD", exchangeRate: 42.154, commissionFee: 12.35, transactionFee: 2, serviceFee: 4 },
-  BR: { label: "브라질", currency: "BRL", exchangeRate: 267.122, commissionFee: 13.35, transactionFee: 2, serviceFee: 4 },
-  TH: { label: "태국", currency: "THB", exchangeRate: 40.554, commissionFee: 21.77, transactionFee: 2.14, serviceFee: 4 },
-  MY: { label: "말레이시아", currency: "MYR", exchangeRate: 333.472, commissionFee: 16.58, transactionFee: 2.12, serviceFee: 4 },
-  PH: { label: "필리핀", currency: "PHP", exchangeRate: 22.163, commissionFee: 10.01, transactionFee: 2.24, serviceFee: 4 },
-  VN: { label: "베트남", currency: "VND", exchangeRate: 0.05189, commissionFee: 17, transactionFee: 2.2, serviceFee: 4 },
-  MX: { label: "멕시코", currency: "MXN", exchangeRate: 77.814, commissionFee: 15.35, transactionFee: 2, serviceFee: 4 }
+  SG: { label: "싱가포르", currency: "SGD", exchangeRate: 1056.85, commissionFee: 15.35, transactionFee: 2.16, serviceFee: 0 },
+  TW: { label: "대만", currency: "TWD", exchangeRate: 42.154, commissionFee: 12.35, transactionFee: 2, serviceFee: 0 },
+  BR: { label: "브라질", currency: "BRL", exchangeRate: 267.122, commissionFee: 13.35, transactionFee: 2, serviceFee: 6 },
+  TH: { label: "태국", currency: "THB", exchangeRate: 40.554, commissionFee: 21.77, transactionFee: 2.14, serviceFee: 0 },
+  MY: { label: "말레이시아", currency: "MYR", exchangeRate: 333.472, commissionFee: 16.58, transactionFee: 2.12, serviceFee: 0 },
+  PH: { label: "필리핀", currency: "PHP", exchangeRate: 22.163, commissionFee: 10.01, transactionFee: 2.24, serviceFee: 0 },
+  VN: { label: "베트남", currency: "VND", exchangeRate: 0.05189, commissionFee: 17, transactionFee: 2.2, serviceFee: 0 },
+  MX: { label: "멕시코", currency: "MXN", exchangeRate: 77.814, commissionFee: 15.35, transactionFee: 2, serviceFee: 0 }
 };
 const SHOPEE_MARKET_CODES = ["TW", "MY", "VN", "TH", "PH", "SG", "BR", "MX"];
 
@@ -68,7 +68,7 @@ const defaults = {
   ebayFixedFee: 0.4,
   ebayAdFee: 3,
   ebayBufferFee: 1,
-  shopeeProgramFee: 4,
+  shopeeProgramFee: 0,
   shopeeWithdrawalFee: 0.9,
   shopeeBufferFee: 1,
   customsPayer: "buyer",
