@@ -1,6 +1,6 @@
 const STORAGE_KEY = "global-seller-margin-desk-v2";
 const RATE_PROFILE_ID = "hana-first-20260612-92-usd1335";
-const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-article-10624-20260525-v2";
+const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-article-10624-20260720-mx";
 
 const SHOPEE_MARKETS = {
   SG: { label: "싱가포르", currency: "SGD", exchangeRate: 1094.322, commissionFee: 15.35, transactionFee: 2.16 },
@@ -9,7 +9,8 @@ const SHOPEE_MARKETS = {
   TH: { label: "태국", currency: "THB", exchangeRate: 42.909, commissionFee: 21.77, transactionFee: 2.14 },
   MY: { label: "말레이시아", currency: "MYR", exchangeRate: 345.423, commissionFee: 16.58, transactionFee: 2.12 },
   PH: { label: "필리핀", currency: "PHP", exchangeRate: 23, commissionFee: 10.01, transactionFee: 2.24 },
-  VN: { label: "베트남", currency: "VND", exchangeRate: 0.05336, commissionFee: 17, transactionFee: 2.2 }
+  VN: { label: "베트남", currency: "VND", exchangeRate: 0.05336, commissionFee: 17, transactionFee: 2.2 },
+  MX: { label: "멕시코", currency: "MXN", exchangeRate: 77.64, commissionFee: 15.35, transactionFee: 2 }
 };
 const SHOPEE_MARKET_CODES = Object.keys(SHOPEE_MARKETS);
 
@@ -26,7 +27,8 @@ const SHOPEE_BUYER_SHIPPING_RULES = {
     note: "New MY Price Tool 예시 기준. 800g 초과분은 보수 추정"
   },
   PH: { type: "fixed", amount: 40, note: "Zone A 기준 고객 고정 배송비" },
-  VN: { type: "fixed", amount: 15000, note: "Zone A1 기준 고객 고정 배송비" }
+  VN: { type: "fixed", amount: 15000, note: "Zone A1 기준 고객 고정 배송비" },
+  MX: { type: "fixed", amount: 40, note: "MX Price Tool 2026.07.01 기준 고객 부담 배송비" }
 };
 
 const CUSTOMS_TOY_CARD = {
@@ -36,7 +38,8 @@ const CUSTOMS_TOY_CARD = {
   TH: { dutyRate: 20, vatRate: 7, thresholdLocal: 0, note: "CIF 기준 관부가세" },
   MY: { dutyRate: 0, vatRate: 10, thresholdLocal: 0, note: "LVG 판매세 10% 기준" },
   PH: { dutyRate: 15, vatRate: 12, thresholdLocal: 10000, underDutyRate: 0, underVatRate: 0, note: "PHP 10,000 이하 면세 기준" },
-  VN: { dutyRate: 20, vatRate: 10, thresholdLocal: 0, note: "저가수입 면세 폐지 이후 보수 기준" }
+  VN: { dutyRate: 20, vatRate: 10, thresholdLocal: 0, note: "저가수입 면세 폐지 이후 보수 기준" },
+  MX: { dutyRate: 33.5, vatRate: 16, thresholdUsd: 2500, note: "비FTA 소액 특송 보수 기준" }
 };
 
 const CUSTOMS_POLICY_NOTES = {
@@ -46,7 +49,8 @@ const CUSTOMS_POLICY_NOTES = {
   TH: "쇼피 자동 마크업",
   MY: "마켓/구매자 처리",
   PH: "마켓/구매자 처리",
-  VN: "마켓/구매자 처리"
+  VN: "마켓/구매자 처리",
+  MX: "쇼피 수입 관세율 자동 반영"
 };
 
 const defaults = {
