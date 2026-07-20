@@ -12,7 +12,7 @@ const SHOPEE_MARKETS = {
   VN: { label: "베트남", currency: "VND", exchangeRate: 0.05336, commissionFee: 17, transactionFee: 2.2 },
   MX: { label: "멕시코", currency: "MXN", exchangeRate: 77.64, commissionFee: 15.35, transactionFee: 2 }
 };
-const SHOPEE_MARKET_CODES = Object.keys(SHOPEE_MARKETS);
+const SHOPEE_MARKET_CODES = ["TW", "MY", "VN", "TH", "PH", "SG", "BR", "MX"];
 
 const SHOPEE_BUYER_SHIPPING_RULES = {
   SG: { type: "fixed", amount: 1.83, note: "SG 2026.06.01 요율표의 고객 부담 배송비 기준 반영" },
@@ -787,6 +787,7 @@ function saveCurrentRecord() {
 }
 
 function renderHistory() {
+  renderHistoryHeader();
   const query = normalize(els.historySearch.value);
   const rows = (state.savedRecords || []).filter((record) => {
     if (!query) return true;
@@ -795,7 +796,7 @@ function renderHistory() {
   });
   els.historyCount.textContent = `${state.savedRecords.length}개 저장됨`;
   if (!rows.length) {
-    els.historyBody.innerHTML = `<tr><td colspan="13" class="empty">검색 결과가 없습니다.</td></tr>`;
+    els.historyBody.innerHTML = `<tr><td colspan="${historyColumnCount()}" class="empty">검색 결과가 없습니다.</td></tr>`;
     return;
   }
   els.historyBody.innerHTML = rows.map((record) => `
@@ -812,6 +813,22 @@ function renderHistory() {
   els.historyBody.querySelectorAll("[data-load]").forEach((button) => {
     button.addEventListener("click", () => loadRecord(button.dataset.load));
   });
+}
+
+function renderHistoryHeader() {
+  const headerRow = els.historyBody?.closest("table")?.querySelector("thead tr");
+  if (!headerRow) return;
+  const baseLabels = ["저장일", "상품명", "원가", "목표 마진", "이베이 USD"];
+  const labels = [...baseLabels, ...savedShopeeHeaderLabels(), ""];
+  headerRow.innerHTML = labels.map((label) => `<th>${label}</th>`).join("");
+}
+
+function savedShopeeHeaderLabels() {
+  return SHOPEE_MARKET_CODES.map((code) => `쇼피 ${code}`);
+}
+
+function historyColumnCount() {
+  return 5 + SHOPEE_MARKET_CODES.length + 1;
 }
 
 function formatSavedEbay(record) {
@@ -1025,6 +1042,8 @@ if (typeof module !== "undefined") {
     calculateEbay,
     calculateShopee,
     defaults,
+    savedShopeeHeaderLabels,
+    SHOPEE_MARKET_CODES,
     lookupShopeeShipping,
     lookupShopeeBuyerShipping
   };
