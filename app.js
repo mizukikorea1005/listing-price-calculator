@@ -1,16 +1,16 @@
 const STORAGE_KEY = "global-seller-margin-desk-v2";
 const RATE_PROFILE_ID = "hana-first-20260612-92-usd1335";
-const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-article-10624-20260720-mx";
+const SHOPEE_FEE_PROFILE_ID = "shopee-sls-fee-article-10624-20260720-market-service";
 
 const SHOPEE_MARKETS = {
-  SG: { label: "싱가포르", currency: "SGD", exchangeRate: 1094.322, commissionFee: 15.35, transactionFee: 2.16 },
-  TW: { label: "대만", currency: "TWD", exchangeRate: 44.436, commissionFee: 12.35, transactionFee: 2 },
-  BR: { label: "브라질", currency: "BRL", exchangeRate: 275.439, commissionFee: 13.35, transactionFee: 2 },
-  TH: { label: "태국", currency: "THB", exchangeRate: 42.909, commissionFee: 21.77, transactionFee: 2.14 },
-  MY: { label: "말레이시아", currency: "MYR", exchangeRate: 345.423, commissionFee: 16.58, transactionFee: 2.12 },
-  PH: { label: "필리핀", currency: "PHP", exchangeRate: 23, commissionFee: 10.01, transactionFee: 2.24 },
-  VN: { label: "베트남", currency: "VND", exchangeRate: 0.05336, commissionFee: 17, transactionFee: 2.2 },
-  MX: { label: "멕시코", currency: "MXN", exchangeRate: 77.64, commissionFee: 15.35, transactionFee: 2 }
+  SG: { label: "싱가포르", currency: "SGD", exchangeRate: 1094.322, commissionFee: 15.35, transactionFee: 2.16, serviceFee: 4 },
+  TW: { label: "대만", currency: "TWD", exchangeRate: 44.436, commissionFee: 12.35, transactionFee: 2, serviceFee: 4 },
+  BR: { label: "브라질", currency: "BRL", exchangeRate: 275.439, commissionFee: 13.35, transactionFee: 2, serviceFee: 4 },
+  TH: { label: "태국", currency: "THB", exchangeRate: 42.909, commissionFee: 21.77, transactionFee: 2.14, serviceFee: 4 },
+  MY: { label: "말레이시아", currency: "MYR", exchangeRate: 345.423, commissionFee: 16.58, transactionFee: 2.12, serviceFee: 4 },
+  PH: { label: "필리핀", currency: "PHP", exchangeRate: 23, commissionFee: 10.01, transactionFee: 2.24, serviceFee: 4 },
+  VN: { label: "베트남", currency: "VND", exchangeRate: 0.05336, commissionFee: 17, transactionFee: 2.2, serviceFee: 4 },
+  MX: { label: "멕시코", currency: "MXN", exchangeRate: 77.64, commissionFee: 15.35, transactionFee: 2, serviceFee: 4 }
 };
 const SHOPEE_MARKET_CODES = ["TW", "MY", "VN", "TH", "PH", "SG", "BR", "MX"];
 
@@ -401,7 +401,8 @@ function calculateShopee(code, input) {
   const buyerShippingKrw = buyerShippingLocal * numberValue(market.exchangeRate);
   const cost = baseCost(input) + sellerShippingKrw;
   const targetProfit = targetProfitAmountKrw(input);
-  const commissionServiceRate = (numberValue(market.commissionFee) + numberValue(input.shopeeProgramFee)) / 100;
+  const serviceFee = market.serviceFee ?? input.shopeeProgramFee;
+  const commissionServiceRate = (numberValue(market.commissionFee) + numberValue(serviceFee)) / 100;
   const bufferRate = numberValue(input.shopeeBufferFee) / 100;
   const withdrawalRate = numberValue(input.shopeeWithdrawalFee) / 100;
   const transactionRate = numberValue(market.transactionFee) / 100;
@@ -630,6 +631,7 @@ function normalizeShopeeMarket(code, savedMarket) {
     currency: fallback.currency,
     exchangeRate: marketNumberOrDefault(saved.exchangeRate, fallback.exchangeRate, { positive: true }),
     commissionFee: marketNumberOrDefault(saved.commissionFee, fallback.commissionFee),
+    serviceFee: marketNumberOrDefault(saved.serviceFee, fallback.serviceFee ?? defaults.shopeeProgramFee),
     transactionFee: marketNumberOrDefault(saved.transactionFee, fallback.transactionFee)
   };
 }
@@ -686,7 +688,7 @@ function renderShopeeFeeCell(row) {
   const fee = row.feeBreakdown || {};
   return `
     <strong>${formatKrw(row.feeKrw)}</strong><br>
-    <span>판매/FSP ${formatKrw(fee.commissionServiceFee)}</span><br>
+    <span>판매/서비스 ${formatKrw(fee.commissionServiceFee)}</span><br>
     <span>거래 ${formatKrw(fee.transactionFee)} · 인출 ${formatKrw(fee.withdrawalFee)}</span><br>
     <span>여유분 ${formatKrw(fee.bufferFee)}</span>
   `;
@@ -709,6 +711,7 @@ function renderMarketSettings() {
       <td>${market.currency}</td>
       <td><input data-field="exchangeRate" type="number" min="0" step="0.001" value="${market.exchangeRate}"></td>
       <td><input data-field="commissionFee" type="number" min="0" step="0.1" value="${market.commissionFee}"></td>
+      <td><input data-field="serviceFee" type="number" min="0" step="0.1" value="${market.serviceFee}"></td>
       <td><input data-field="transactionFee" type="number" min="0" step="0.1" value="${market.transactionFee}"></td>
     </tr>
   `;
@@ -929,6 +932,7 @@ function applyShopeeOfficialFees(nextState) {
   nextState.markets = normalizeShopeeMarkets(nextState.markets);
   Object.keys(defaults.markets).forEach((code) => {
     nextState.markets[code].commissionFee = defaults.markets[code].commissionFee;
+    nextState.markets[code].serviceFee = defaults.markets[code].serviceFee;
     nextState.markets[code].transactionFee = defaults.markets[code].transactionFee;
   });
   nextState.shopeeProgramFee = defaults.shopeeProgramFee;
